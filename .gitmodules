@@ -1,9 +1,0 @@
-[submodule "external/libdap"]
-	path = external/libdap
-	url = https://github.com/demlabsinc/libdap.git
-[submodule "external/libdap-chain"]
-	path = external/libdap-chain
-	url = https://github.com/demlabsinc/libdap-chain.git
-[submodule "ext/libdap-stream"]
-	path = ext/libdap-stream
-	url = https://github.com/demlabsinc/libdap-stream.git
