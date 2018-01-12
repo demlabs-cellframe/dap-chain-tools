@@ -7,8 +7,15 @@ set(CMAKE_COLOR_MAKEFILE   ON)
 
 #set(CMAKE_LIBRARY_PATH ${CMAKE_LIBRARY_PATH} /opt/local/lib)
 #set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} /opt/local/include)
-add_subdirectory(symlinks/libdap)
-add_subdirectory(symlinks/libdap-chain)
+add_subdirectory(libdap)
+add_subdirectory(libdap-chain)
+
+include_directories("${INCLUDE_DIRECTORIES} ${dap_core_INCLUDE_DIRS}")
+include_directories("${INCLUDE_DIRECTORIES} ${libdap-chain_INCLUDE_DIRS}")
+add_definitions ("${dap_core_DEFINITIONS}")
+add_definitions ("${libdap-chain_DEFINITIONS}")
 
 
-add_executable(dap_chain_cli "sources/dap_chain_cli.c" )
+#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ")
+add_executable(${PROJECT_NAME} "sources/dap-chain-cli.c" )
+target_link_libraries(${PROJECT_NAME} dap)
