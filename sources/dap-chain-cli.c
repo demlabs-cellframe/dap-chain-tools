@@ -16,18 +16,26 @@ void init()
     dap_chain_init();
 }
 
+
+void print_help()
+{
+
+
+}
+
 int main(int argc, const char *argv[])
 {
     log_it(L_INFO,"dap-chain-cli version 0.0.1 \n");
     if( argc >1){
         init();
-        char * l_config_name = argv[1];
+        char * l_config_name = strdup(argv[1]);
         dap_config_t * l_config = dap_config_open(l_config_name);
         if( l_config ){
             const char * l_chain_name = dap_config_get_item_str(l_config,"general","name" );
+            const char * l_chain_file = dap_config_get_item_str(l_config,"general","blockchain_file" );
 
             if(l_chain_name){
-                dap_chain_t * l_chain = dap_chain_open(l_chain_name);
+                dap_chain_t * l_chain = dap_chain_open(l_chain_file);
                 if( l_chain){
                     if( argc >2){
                         if ( strcmp(argv[2],"block") ==0 ){
@@ -38,6 +46,15 @@ int main(int argc, const char *argv[])
                             }else{
                                 log_it(L_CRITICAL, "Command 'block' need to be specified. Variant: 'new' 'show' ");
                             }
+                        }else if( strcmp(argv[2],"wallet") == 0){
+                            if(argc>3){
+                                if ( strcmp(argv[3],"create") ==0 ){
+                                    log_it(L_INFO,"Create blochain wallet");
+                                }
+                            }else{
+                                log_it(L_CRITICAL, "Command 'wallet' need to be specified. Variant: 'new' 'show' ");
+                            }
+
                         }
                     }else{
                         log_it(L_INFO, "Information about '%s'",l_chain_name);
@@ -52,6 +69,7 @@ int main(int argc, const char *argv[])
         }else{
             log_it(L_CRITICAL,"Can't open config name %s",l_config_name);
         }
+        free(l_config_name);
     }
     return 0;
 }
