@@ -32,10 +32,11 @@ int main(int argc, const char *argv[])
         dap_config_t * l_config = dap_config_open(l_config_name);
         if( l_config ){
             const char * l_chain_name = dap_config_get_item_str(l_config,"general","name" );
-            const char * l_chain_file = dap_config_get_item_str(l_config,"general","blockchain_file" );
+            const char * l_chain_file_storage = dap_config_get_item_str(l_config,"general","file_storage" );
+            const char * l_chain_file_cache = dap_config_get_item_str(l_config,"general","file_cache" );
 
             if(l_chain_name){
-                dap_chain_t * l_chain = dap_chain_open(l_chain_file);
+                dap_chain_t * l_chain = dap_chain_open(l_chain_file_storage,l_chain_file_cache);
                 if( l_chain){
                     if( argc >2){
                         if ( strcmp(argv[2],"block") ==0 ){
