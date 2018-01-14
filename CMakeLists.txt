@@ -12,10 +12,12 @@ add_subdirectory(libdap-chain)
 
 include_directories("${INCLUDE_DIRECTORIES} ${dap_core_INCLUDE_DIRS}")
 include_directories("${INCLUDE_DIRECTORIES} ${dap_crypto_INCLUDE_DIRS}")
-include_directories("${INCLUDE_DIRECTORIES} ${libdap-chain_INCLUDE_DIRS}")
+include_directories("${INCLUDE_DIRECTORIES} ${monero_crypto_INCLUDE_DIRS}")
+include_directories("${INCLUDE_DIRECTORIES} ${dap-chain_INCLUDE_DIRS}")
 add_definitions ("${dap_core_DEFINITIONS}")
 add_definitions ("${dap_crypto_DEFINITIONS}")
-add_definitions ("${libdap-chain_DEFINITIONS}")
+add_definitions ("${monero_crypto_DEFINITIONS}")
+add_definitions ("${dap-chain_DEFINITIONS}")
 
 
 #set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ")
