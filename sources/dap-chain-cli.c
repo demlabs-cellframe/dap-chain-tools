@@ -45,8 +45,8 @@ int main(int argc, const char *argv[])
                                 if ( strcmp(argv[3],"new") ==0 ){
                                     log_it(L_INFO,"Create new block");
                                     dap_chain_block_cache_t * l_block_cache = dap_chain_allocate_next_block(l_chain);
-                                    if ( dap_chain_mine_block(l_block_cache,true) == 0 ){
-                                        char * l_hash_str = dap_chain_hash_to_str(&l_block_cache->block_hash);
+                                    if ( dap_chain_mine_block(l_block_cache,true,0) == 0 ){
+                                        char * l_hash_str = dap_chain_hash_to_str_new(&l_block_cache->block_hash);
                                         log_it (L_INFO, "Block mined with hash %s ", l_hash_str );
                                         dap_chain_block_cache_dump(l_block_cache);
                                         DAP_DELETE(l_hash_str);
