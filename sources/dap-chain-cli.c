@@ -9,6 +9,8 @@
 #include <signal.h>
 #include <sys/mman.h>
 #include <fcntl.h>
+//#include <atomic>
+//#include <cstdatomic>
 /*#include <sys\types.h>
 #include <sys\stat.h>
 #include <io.h>*/
@@ -25,6 +27,16 @@ FILE* my_file_to_wite_copper;
 void* copper_mem;
 
 int blocks_mined;
+int blocks_mined_gold;
+int blocks_mined_silver;
+int blocks_mined_copper;
+
+double total_mining_time;
+double total_mining_hashes; //хз че делать пока
+double total_hashes_in_minute;
+
+//std::atomic_flag work= ATOMIC_FLAG_INIT;
+bool work;
 
 void init() {
     dap_common_init(NULL);
@@ -44,14 +56,19 @@ void sing_handler(int signum){
     /*    munmap(gold_mem,16*blocks_mined);
         munmap(silver_mem, 16*blocks_mined);*/
         //fclose(my_file_to_wite_gold);
+        //work.clear();
         log_it(L_INFO, "Total hashes for gold coins %s B", ftell(my_file_to_wite_gold) );
         fclose(my_file_to_wite_gold);
         log_it(L_INFO, "Total hashes for silver coins %s B", ftell(my_file_to_wite_silver));
         fclose(my_file_to_wite_silver);
         log_it(L_INFO, "Total hashes for copper coins %s B", ftell(my_file_to_wite_copper));
         fclose(my_file_to_wite_copper);
-        log_it(L_INFO, "Total blocks mines %s ", blocks_mined);
-        exit(1);
+        log_it(L_INFO, "Total blocks mined %s ", blocks_mined);
+        log_it(L_INFO, "Gold blocks mined %s ", blocks_mined_gold);
+        log_it(L_INFO, "Silver blocks mined %s ", blocks_mined_silver);
+        log_it(L_INFO, "Copper blocks mined %s ", blocks_mined_copper);
+        log_it(L_INFO, "Totla mining speed %s ", total_hashes_in_minute/blocks_mined);
+        exit(0);
     }
 
 }
@@ -104,31 +121,41 @@ int main(int argc, const char *argv[]) {
                         if (strcmp(argv[2], "block") == 0) {
                             if (argc > 3) {
                                 if (strcmp(argv[3], "new") == 0) {//елси блон новый
-                                    blocks_mined=0;
+                                    blocks_mined = 0;
+                                    blocks_mined_copper = 0;
+                                    blocks_mined_silver = 0;
+                                    blocks_mined_gold = 0;
+                                    total_hashes_in_minute = 0;
                                     log_it(L_INFO, "Create new block");//то пишем "блок новый"
                                     dap_chain_block_cache_t *l_block_cache =
+
                                             dap_chain_allocate_next_block(l_chain);//размещаем новый блок
 
-
+                                    //m_hash_rate;
                                     if (dap_chain_mine_block(l_block_cache, false, 0) == 0) {//майним
                                         char *l_hash_str =
                                                 dap_chain_hash_to_str_new(&l_block_cache->block_hash); //че-то хеш в строку переводим
                                         log_it(L_INFO, "Block mined with hash %s ", l_hash_str);
-                                        blocks_mined+=1;
+
+                                        blocks_mined += 1;
+                                        total_hashes_in_minute = total_hashes_in_minute + sizeof(l_block_cache->block_hash)/l_block_cache->block_mine_time;
                                         if (dap_chain_hash_kind_check(l_block_cache, l_block_cache->block->header.difficulty)==HASH_GOLD){
                                             fwrite(l_block_cache->block, l_block_cache->block->header.size, 1, my_file_to_wite_gold);
+                                            blocks_mined_gold += 1;
                                             /*gold_mem=mmap(0, l_block_cache->block->header.size, PROT_WRITE, MAP_SHARED, my_file_to_wite_gold, 0);
                                             memcpy(gold_mem, l_block_cache, l_block_cache->block->header.size);
                                             munmap(gold_mem, l_block_cache->block->header.size);*/
                                         }
                                         else if (dap_chain_hash_kind_check(l_block_cache, l_block_cache->block->header.difficulty)==HASH_SILVER){
                                             fwrite(l_block_cache->block, l_block_cache->block->header.size, 1, my_file_to_wite_silver);
+                                            blocks_mined_silver += 1;
                                             /*silver_mem=mmap(0, l_block_cache->block->header.size, PROT_WRITE, MAP_SHARED, my_file_to_wite_silver, 0);
                                             memcpy(silver_mem, l_block_cache, l_block_cache->block->header.size);
                                             munmap(silver_mem, l_block_cache->block->header.size);*/
                                         }
                                         else {
                                             fwrite(l_block_cache->block, l_block_cache->block->header.size, 1, my_file_to_wite_copper);
+                                            blocks_mined_copper += 1;
                                             /*copper_mem=mmap(0, l_block_cache->block->header.size, PROT_WRITE, MAP_SHARED, my_file_to_wite_copper, 0);
                                             memcpy(copper_mem, l_block_cache, l_block_cache->block->header.size);
                                             munmap(copper_mem, l_block_cache->block->header.size);*/
@@ -148,18 +175,21 @@ int main(int argc, const char *argv[]) {
                                                              dap_chain_hash_to_str_new(&l_block_cache->block_hash); //че-то хеш в строку переводим
                                                         if (dap_chain_hash_kind_check(l_block_cache, l_block_cache->block->header.difficulty)==HASH_GOLD){
                                                             fwrite(l_block_cache->block, l_block_cache->block->header.size, 1, my_file_to_wite_gold);
+                                                            blocks_mined_gold += 1;
                                                            /* gold_mem=mmap(0, l_block_cache->block->header.size, PROT_WRITE, MAP_SHARED, my_file_to_wite_gold, 0);
                                                             memcpy(gold_mem, l_block_cache, l_block_cache->block->header.size);
                                                             munmap(gold_mem, l_block_cache->block->header.size);*/
                                                         }
                                                         else if (dap_chain_hash_kind_check(l_block_cache, l_block_cache->block->header.difficulty)==HASH_SILVER){
                                                             fwrite(l_block_cache->block, l_block_cache->block->header.size, 1, my_file_to_wite_silver);
+                                                            blocks_mined_silver += 1;
                                                             /*silver_mem=mmap(0, l_block_cache->block->header.size, PROT_WRITE, MAP_SHARED, my_file_to_wite_silver, 0);
                                                             memcpy(silver_mem, l_block_cache, l_block_cache->block->header.size);
                                                             munmap(silver_mem, l_block_cache->block->header.size);*/
                                                         }
                                                         else {
                                                             fwrite(l_block_cache->block, l_block_cache->block->header.size, 1, my_file_to_wite_copper);
+                                                            blocks_mined_copper += 1;
                                                         /*    copper_mem=mmap(0, l_block_cache->block->header.size, PROT_WRITE, MAP_SHARED, my_file_to_wite_copper, 0);
                                                             memcpy(copper_mem, l_block_cache, l_block_cache->block->header.size);
                                                             munmap(copper_mem, l_block_cache->block->header.size);*/
