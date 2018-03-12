@@ -118,7 +118,26 @@ int main(int argc, const char *argv[]) {
 
                 if (l_chain) {
                     if (argc > 2) {
-                        if (strcmp(argv[2], "block") == 0) {
+                        if (strcmp(argv[2], "encypt")==0){
+                            if (argv[3]>  0){
+                              //  dap_enc_code()
+                            }
+                            else {
+                                log_it(L_CRITICAL, "Command encrypt need to be specified. "
+                                                   "Please, enter encryption type");
+                            }
+                        }
+                        else if (strcmp(argv[2], "decypt")==0){
+                            if (argv[3]>  0){
+
+                            }
+                            else {
+                                log_it(L_CRITICAL, "Command decrypt need to be specified. "
+                                                   "Please, enter encryption type");
+                                }
+
+                        }
+                        else if (strcmp(argv[2], "block") == 0) {
                             if (argc > 3) {
                                 if (strcmp(argv[3], "new") == 0) {//елси блон новый
                                     blocks_mined = 0;
