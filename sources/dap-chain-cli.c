@@ -102,7 +102,7 @@ int main(int argc, const char *argv[]) {
 
 
                 my_file_to_wite_silver = fopen("my_block_silver.txt", "w");
-                if (my_file_to_wite_gold==NULL){
+                if (my_file_to_wite_silver==NULL){
                     log_it(L_INFO, "Everything is lost! File not opened!");
                     exit(1);
 
@@ -246,6 +246,56 @@ int main(int argc, const char *argv[]) {
                                                    "Variant: 'new' 'show' ");
                             }
                         }
+                        /* encrypt and decrypt via cmd params */
+						else if (strcmp(argv[2], "encrypt") == 0) {
+							if (argc > 4) {
+								/* What is supposed to be encrypted / decrypted ??? Let it be cmd param 4 */
+								log_it(L_INFO, "Encryption with '%s' method", argv[3]);
+								buf_size = strlen(argv[4]);
+								buf_encrypted = (char *)calloc(1, buf_size * 4);
+								/* Feistel */
+								if (strcmp(argv[3], "FNAm2") == 0) {
+									key = dap_enc_key_new(64, ENC_KEY_TYPE_FNAM2);
+									buf_enc_size = dap_enc_code(key, argv[4], buf_size, buf_encrypted, ENC_DATA_TYPE_RAW);
+								}
+								/* AES */
+								else if (strcmp(argv[3], "AES") {
+									key = enc_key_create("SomeVeryLongString", ENC_KEY_TYPE_AES);
+									buf_enc_size = dap_enc_code(key, argv[4], buf_size, buf_encrypted, ENC_DATA_TYPE_B64);
+								}
+							}
+							else {
+								log_it(L_CRITICAL, "Command 'encrypt' needs to be specified. "
+													"Set encryption type. ");
+							}
+						}
+						else if (strcmp(argv[2], "decrypt") == 0) {
+							if (argc > 4) {
+								log_it(L_INFO, "Decryption with '%s' method", argv[3]);
+								if (strcmp(argv[3], "FNAm2") == 0) {
+									buf_dec_size = dap_enc_decode(key, argv[4], buf_size, buf_decrypted, ENC_DATA_TYPE_RAW);
+								}
+								else if (strcmp(argv[3], "AES") == 0) {
+									buf_dec_size = dap_enc_decode(key, argv[4], buf_size, buf_decrypted, ENC_DATA_TYPE_B64);
+								}
+							}
+							else {
+								log_it(L_CRITICAL, "Command 'decrypt' needs to be specified. "
+													"Set decryption type. ");
+							}
+						}
+						/* Do smth with obtained buffers*/
+						if (buf_encrypted) 
+						{
+							free(buf_encrypted);
+							buf_encrypted = nullptr;
+						}
+						if (buf_decrypted)
+						{
+							free(buf_decrypted);
+							buf_decrypted = nullptr;
+						}
+						/* */
                     } else {
                         log_it(L_INFO, "Information about '%s'", l_chain_name);
                         dap_chain_info_dump_log(l_chain);
