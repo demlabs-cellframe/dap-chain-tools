@@ -120,7 +120,12 @@ int main(int argc, const char *argv[]) {
                     if (argc > 2) {
                         if (strcmp(argv[2], "encypt")==0){
                             if (argv[3]>  0){
-                              //  dap_enc_code()
+                                if (argv[3] =="DAP_ENC_DATA_TYPE_MSRLN16"){
+                                   // dap_enc_code();
+                                }
+                                else {
+                                    log_it(L_CRITICAL, "Please, enter existing encryption type");
+                                }
                             }
                             else {
                                 log_it(L_CRITICAL, "Command encrypt need to be specified. "
@@ -129,7 +134,12 @@ int main(int argc, const char *argv[]) {
                         }
                         else if (strcmp(argv[2], "decypt")==0){
                             if (argv[3]>  0){
-
+                                if (argv[3] =="DAP_ENC_DATA_TYPE_MSRLN16"){
+                                                                   // dap_enc_code();
+                                                                }
+                                                                else {
+                                                                    log_it(L_CRITICAL, "Please, enter existing encryption type");
+                                                                }
                             }
                             else {
                                 log_it(L_CRITICAL, "Command decrypt need to be specified. "
