@@ -1,6 +1,6 @@
 [submodule "libdap"]
 	path = libdap
-	url = https://github.com/demlabsinc/libdap.git
+	url = https://github.com/MaxKrasil/libdap.git
 [submodule "libdap-chain"]
 	path = libdap-chain
-	url = https://github.com/demlabsinc/libdap-chain.git
+	url = https://github.com/MaxKrasil/libdap-chain.git
