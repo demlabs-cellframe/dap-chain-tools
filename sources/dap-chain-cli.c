@@ -3,6 +3,7 @@
 #include "dap_common.h"
 #include "dap_config.h"
 #include "dap_enc.h"
+#include "dap_enc_key.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +36,14 @@ double total_mining_time;
 double total_mining_hashes; //хз че делать пока
 double total_hashes_in_minute;
 
+size_t buf_enc_size;
+size_t buf_size;
+size_t buf_encrypted;
+size_t buf_dec_size;
+
+dap_enc_key_t* key;
+
+void* buf_decrypted;
 //std::atomic_flag work= ATOMIC_FLAG_INIT;
 bool work;
 
@@ -57,7 +66,8 @@ void sing_handler(int signum){
         munmap(silver_mem, 16*blocks_mined);*/
         //fclose(my_file_to_wite_gold);
         //work.clear();
-        log_it(L_INFO, "Total hashes for gold coins %s B", ftell(my_file_to_wite_gold) );
+        dap_chain_mine_stop();
+     /*   log_it(L_INFO, "Total hashes for gold coins %s B", ftell(my_file_to_wite_gold) );
         fclose(my_file_to_wite_gold);
         log_it(L_INFO, "Total hashes for silver coins %s B", ftell(my_file_to_wite_silver));
         fclose(my_file_to_wite_silver);
@@ -67,7 +77,7 @@ void sing_handler(int signum){
         log_it(L_INFO, "Gold blocks mined %s ", blocks_mined_gold);
         log_it(L_INFO, "Silver blocks mined %s ", blocks_mined_silver);
         log_it(L_INFO, "Copper blocks mined %s ", blocks_mined_copper);
-        log_it(L_INFO, "Totla mining speed %s ", total_hashes_in_minute/blocks_mined);
+        log_it(L_INFO, "Totla mining speed %s ", total_hashes_in_minute//blocks_mined);*/
         exit(0);
     }
 
@@ -92,9 +102,13 @@ int main(int argc, const char *argv[]) {
                 dap_chain_t *l_chain =
                         dap_chain_open(l_chain_file_storage, l_chain_file_cache);
 
-                my_file_to_wite_gold = fopen("my_block_gold.txt", "w");// тестовый файл создам если есть добавим
+                dap_chain_block_cache_t* l_g;
+                dap_chain_block_cache_t* l_s;
+                dap_chain_block_cache_t* l_c;
+                dap_chain_file_open(l_g, l_s, l_c);
+               // my_file_to_wite_gold = fopen("my_block_gold.txt", "w");// тестовый файл создам если есть добавим
 
-                if (my_file_to_wite_gold==NULL){
+             /*   if (my_file_to_wite_gold==NULL){
                     log_it(L_INFO, "Everything is lost! File not opened!");
                     exit(1);
 
@@ -113,7 +127,7 @@ int main(int argc, const char *argv[]) {
                     log_it(L_INFO, "Everything is lost! File not opened!");
                     exit(1);
 
-                }
+                }*/
 
 
                 if (l_chain) {
@@ -156,9 +170,21 @@ int main(int argc, const char *argv[]) {
                                     blocks_mined_gold = 0;
                                     total_hashes_in_minute = 0;
                                     log_it(L_INFO, "Create new block");//то пишем "блок новый"
-                                    dap_chain_block_cache_t *l_block_cache =
+                                    dap_chain_block_cache_t *l_block_cache;
+                                    if (l_g==0&&l_s==0&&l_c==0){
+                                    l_block_cache =
 
                                             dap_chain_allocate_next_block(l_chain);//размещаем новый блок
+                                    }
+                                    else if (l_g!=0){
+                                        l_block_cache = l_g;
+                                    }
+                                    else if (l_s!=0){
+                                        l_block_cache = l_s;
+                                    }
+                                    else if (l_c!=0){
+                                        l_block_cache = l_g;
+                                    }
 
                                     //m_hash_rate;
                                     if (dap_chain_mine_block(l_block_cache, false, 0) == 0) {//майним
@@ -166,31 +192,11 @@ int main(int argc, const char *argv[]) {
                                                 dap_chain_hash_to_str_new(&l_block_cache->block_hash); //че-то хеш в строку переводим
                                         log_it(L_INFO, "Block mined with hash %s ", l_hash_str);
 
-                                        blocks_mined += 1;
-                                        total_hashes_in_minute = total_hashes_in_minute + sizeof(l_block_cache->block_hash)/l_block_cache->block_mine_time;
-                                        if (dap_chain_hash_kind_check(l_block_cache, l_block_cache->block->header.difficulty)==HASH_GOLD){
-                                            fwrite(l_block_cache->block, l_block_cache->block->header.size, 1, my_file_to_wite_gold);
-                                            blocks_mined_gold += 1;
-                                            /*gold_mem=mmap(0, l_block_cache->block->header.size, PROT_WRITE, MAP_SHARED, my_file_to_wite_gold, 0);
-                                            memcpy(gold_mem, l_block_cache, l_block_cache->block->header.size);
-                                            munmap(gold_mem, l_block_cache->block->header.size);*/
-                                        }
-                                        else if (dap_chain_hash_kind_check(l_block_cache, l_block_cache->block->header.difficulty)==HASH_SILVER){
-                                            fwrite(l_block_cache->block, l_block_cache->block->header.size, 1, my_file_to_wite_silver);
-                                            blocks_mined_silver += 1;
-                                            /*silver_mem=mmap(0, l_block_cache->block->header.size, PROT_WRITE, MAP_SHARED, my_file_to_wite_silver, 0);
-                                            memcpy(silver_mem, l_block_cache, l_block_cache->block->header.size);
-                                            munmap(silver_mem, l_block_cache->block->header.size);*/
-                                        }
-                                        else {
-                                            fwrite(l_block_cache->block, l_block_cache->block->header.size, 1, my_file_to_wite_copper);
-                                            blocks_mined_copper += 1;
-                                            /*copper_mem=mmap(0, l_block_cache->block->header.size, PROT_WRITE, MAP_SHARED, my_file_to_wite_copper, 0);
-                                            memcpy(copper_mem, l_block_cache, l_block_cache->block->header.size);
-                                            munmap(copper_mem, l_block_cache->block->header.size);*/
-                                        }
-
-
+                                        dap_chain_count_new_block(l_block_cache);
+                                        //total_hashes_in_minute = total_hashes_in_minute + sizeof(l_block_cache->block_hash)/l_block_cache->block_mine_time;
+                                        //dap_chain_file_write(l_block_cache);
+                                        dap_chain_update(l_block_cache);
+//
                                         dap_chain_block_cache_dump(l_block_cache);//дамп че-то
                                         DAP_DELETE(l_hash_str);//хеш стирает
 
@@ -202,27 +208,9 @@ int main(int argc, const char *argv[]) {
                                                     blocks_mined+=1;
                                                         l_hash_str =
                                                              dap_chain_hash_to_str_new(&l_block_cache->block_hash); //че-то хеш в строку переводим
-                                                        if (dap_chain_hash_kind_check(l_block_cache, l_block_cache->block->header.difficulty)==HASH_GOLD){
-                                                            fwrite(l_block_cache->block, l_block_cache->block->header.size, 1, my_file_to_wite_gold);
-                                                            blocks_mined_gold += 1;
-                                                           /* gold_mem=mmap(0, l_block_cache->block->header.size, PROT_WRITE, MAP_SHARED, my_file_to_wite_gold, 0);
-                                                            memcpy(gold_mem, l_block_cache, l_block_cache->block->header.size);
-                                                            munmap(gold_mem, l_block_cache->block->header.size);*/
-                                                        }
-                                                        else if (dap_chain_hash_kind_check(l_block_cache, l_block_cache->block->header.difficulty)==HASH_SILVER){
-                                                            fwrite(l_block_cache->block, l_block_cache->block->header.size, 1, my_file_to_wite_silver);
-                                                            blocks_mined_silver += 1;
-                                                            /*silver_mem=mmap(0, l_block_cache->block->header.size, PROT_WRITE, MAP_SHARED, my_file_to_wite_silver, 0);
-                                                            memcpy(silver_mem, l_block_cache, l_block_cache->block->header.size);
-                                                            munmap(silver_mem, l_block_cache->block->header.size);*/
-                                                        }
-                                                        else {
-                                                            fwrite(l_block_cache->block, l_block_cache->block->header.size, 1, my_file_to_wite_copper);
-                                                            blocks_mined_copper += 1;
-                                                        /*    copper_mem=mmap(0, l_block_cache->block->header.size, PROT_WRITE, MAP_SHARED, my_file_to_wite_copper, 0);
-                                                            memcpy(copper_mem, l_block_cache, l_block_cache->block->header.size);
-                                                            munmap(copper_mem, l_block_cache->block->header.size);*/
-                                                        }
+                                                         //dap_chain_file_write(l_block_cache);
+                                                        dap_chain_update(l_block_cache);
+//
 
                                                         log_it(L_INFO, "Block mined eith hash %s ", l_hash_str);
                                                         dap_chain_block_cache_dump(l_block_cache);//дамп че-то
@@ -255,14 +243,20 @@ int main(int argc, const char *argv[]) {
 								buf_encrypted = (char *)calloc(1, buf_size * 4);
 								/* Feistel */
 								if (strcmp(argv[3], "FNAm2") == 0) {
-									key = dap_enc_key_new(64, ENC_KEY_TYPE_FNAM2);
-									buf_enc_size = dap_enc_code(key, argv[4], buf_size, buf_encrypted, ENC_DATA_TYPE_RAW);
+//                                    key = dap_enc_key_new(64, DAP_ENC_KEY_TYPE_FNAM2);
+                                    key = dap_enc_key_new_generate(DAP_ENC_KEY_TYPE_FNAM2, 64);
+                                    buf_enc_size = dap_enc_code(key, argv[4], buf_size, buf_encrypted, DAP_ENC_DATA_TYPE_RAW);
 								}
 								/* AES */
-								else if (strcmp(argv[3], "AES") {
-									key = enc_key_create("SomeVeryLongString", ENC_KEY_TYPE_AES);
-									buf_enc_size = dap_enc_code(key, argv[4], buf_size, buf_encrypted, ENC_DATA_TYPE_B64);
+                                else if (strcmp(argv[3], "AES") ==0) {
+                                    key = dap_enc_key_new_generate(DAP_ENC_KEY_TYPE_AES, "SomeVeryLongString");
+                                    //key = enc_key_create("SomeVeryLongString", DAP_ENC_KEY_TYPE_AES);
+                                    buf_enc_size = dap_enc_code(key, argv[4], buf_size, buf_encrypted, DAP_ENC_DATA_TYPE_B64);
 								}
+                                else if (strcmp(argv[3], "MSRLN16") ==0){
+                                    key = dap_enc_key_new_generate(DAP_ENC_KEY_TYPE_RLWE_MSRLN16, 64);
+                                    buf_enc_size = dap_enc_code(key, argv[4], buf_size, buf_encrypted, DAP_ENC_DATA_TYPE_RLWE_MSRLN16)
+                                }
 							}
 							else {
 								log_it(L_CRITICAL, "Command 'encrypt' needs to be specified. "
@@ -273,11 +267,14 @@ int main(int argc, const char *argv[]) {
 							if (argc > 4) {
 								log_it(L_INFO, "Decryption with '%s' method", argv[3]);
 								if (strcmp(argv[3], "FNAm2") == 0) {
-									buf_dec_size = dap_enc_decode(key, argv[4], buf_size, buf_decrypted, ENC_DATA_TYPE_RAW);
+                                    buf_dec_size = dap_enc_decode(key, argv[4], buf_size, buf_decrypted, DAP_ENC_DATA_TYPE_RAW);
 								}
 								else if (strcmp(argv[3], "AES") == 0) {
-									buf_dec_size = dap_enc_decode(key, argv[4], buf_size, buf_decrypted, ENC_DATA_TYPE_B64);
+                                    buf_dec_size = dap_enc_decode(key, argv[4], buf_size, buf_decrypted, DAP_ENC_DATA_TYPE_B64);
 								}
+                                else if (strcmp(argv[3], "MSRLN16")==0){
+                                    buf_dec_size = dap_enc_decode(key, argv[4], buf_size, buf_decrypted, DAP_ENC_DATA_TYPE_RLWE_MSRLN16);
+                                }
 							}
 							else {
 								log_it(L_CRITICAL, "Command 'decrypt' needs to be specified. "
@@ -288,12 +285,12 @@ int main(int argc, const char *argv[]) {
 						if (buf_encrypted) 
 						{
 							free(buf_encrypted);
-							buf_encrypted = nullptr;
+                            buf_encrypted = 0;//nullptr;
 						}
 						if (buf_decrypted)
 						{
 							free(buf_decrypted);
-							buf_decrypted = nullptr;
+                            buf_decrypted = 0;//nullptr;
 						}
 						/* */
                     } else {
