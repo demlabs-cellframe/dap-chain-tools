@@ -255,7 +255,7 @@ int main(int argc, const char *argv[]) {
 								}
                                 else if (strcmp(argv[3], "MSRLN16") ==0){
                                     key = dap_enc_key_new_generate(DAP_ENC_KEY_TYPE_RLWE_MSRLN16, 64);
-                                    buf_enc_size = dap_enc_code(key, argv[4], buf_size, buf_encrypted, DAP_ENC_DATA_TYPE_RLWE_MSRLN16)
+                                  //Хз что тут писать:(//  buf_enc_size = dap_enc_code(key, argv[4], buf_size, buf_encrypted, DAP_ENC_DATA_TYPE_RLWE_MSRLN16);
                                 }
 							}
 							else {
@@ -273,7 +273,7 @@ int main(int argc, const char *argv[]) {
                                     buf_dec_size = dap_enc_decode(key, argv[4], buf_size, buf_decrypted, DAP_ENC_DATA_TYPE_B64);
 								}
                                 else if (strcmp(argv[3], "MSRLN16")==0){
-                                    buf_dec_size = dap_enc_decode(key, argv[4], buf_size, buf_decrypted, DAP_ENC_DATA_TYPE_RLWE_MSRLN16);
+                                    //Пока хз что тут писать:(//buf_dec_size = dap_enc_decode(key, argv[4], buf_size, buf_decrypted, DAP_ENC_DATA_TYPE_RLWE_MSRLN16);
                                 }
 							}
 							else {
