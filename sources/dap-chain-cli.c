@@ -4,11 +4,14 @@
 #include "dap_config.h"
 #include "dap_enc.h"
 #include "dap_enc_key.h"
+#include "dap_enc_msrln16.h"
+#include "dap_enc_aes.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 //#include <atomic>
 //#include <cstdatomic>
@@ -85,8 +88,116 @@ void sing_handler(int signum){
 
 int main(int argc, const char *argv[]) {
     log_it(L_INFO, "dap-chain-cli version 0.0.1 \n");
+    //key_test();
+    test_key_aes();
     signal(SIGINT, sing_handler);
     if (argc > 1) {
+        if (strcmp(argv[1], "key")==0){
+            if (argv[2]>  0){
+                if(strcmp(argv[2],"RLWE_MSRLN16")==0){
+
+                }
+                else if(strcmp(argv[2],"SIDH16")==0){
+
+                }
+                else if (strcmp(argv[2], "FNAm2") == 0){
+
+                }
+                else if(strcmp(argv[2],"AES")==0){
+                    log_it(L_INFO, "Generation AES key");
+                    dap_enc_key_t * key = dap_enc_key_new_generate(DAP_ENC_KEY_TYPE_AES,16);
+                    FILE *f = fopen("key.aes", "w");
+                    fwrite (key->data, key->data_size,1, f );
+                    fclose(f);
+                }
+                else {
+                    log_it(L_CRITICAL, "Please, enter existing encryption type");
+                }
+            }
+            else {
+                log_it(L_CRITICAL, "Command generate key need to be specified. "
+                                    "Please, enter encryption type");
+            }
+        } else if (strcmp(argv[1], "encrypt")==0){
+            if (argv[2]>  0){
+                if (strcmp(argv[2],"AES")==0){
+                    if(argv[3] > 0){
+                        char c_key[16];
+                        if(read_key_from_file("key.aes",16,&c_key) == 0)
+                        {
+                            log_it(L_CRITICAL, "Please, generate public key first");
+                            return;
+                        }
+
+                        size_t file_size = get_file_size(argv[3]);
+                        if(file_size == 0){
+                            log_it(L_CRITICAL, "File not exists");
+                            return;
+                        }
+                        void* in = (void*)malloc(file_size);
+                        read_data_from_file(argv[3],in,file_size);
+                        void* out = (void*)malloc(file_size);
+                        dap_enc_key_t * key = dap_enc_key_new_from_data(DAP_ENC_KEY_TYPE_AES,c_key,16);
+                        dap_enc_code(key,in,file_size,out,DAP_ENC_DATA_TYPE_RAW);
+                        write_data_to_file(strcat(argv[3],"_cipher"),out,file_size);
+                    }
+                    else{
+                        log_it(L_CRITICAL, "Please, enter file name for encryption");
+                    }
+
+                }
+                else {
+                    log_it(L_CRITICAL, "Please, enter existing encryption type");
+                }
+            }
+            else {
+                log_it(L_CRITICAL, "Command encrypt need to be specified. "
+                                    "Please, enter encryption type");
+            }
+        }  else if (strcmp(argv[1], "decrypt")==0){
+            if (argv[2]>  0){
+                if (strcmp(argv[2],"AES")==0){
+                    if(argv[3] > 0){
+                        char c_key[16];
+                        if(read_key_from_file("key.aes",16,&c_key) == 0)
+                        {
+                            log_it(L_CRITICAL, "Please, generate public key first");
+                            return;
+                        }
+
+                        size_t size = get_file_size(argv[3]);
+                        if(size == 0){
+                            log_it(L_CRITICAL, "File ",argv[3]," not exists");
+                            return;
+                        }
+                        void* data = (void*)malloc(size);
+                        read_data_from_file(argv[3], data,size);
+
+                        void* out = (void*)malloc(size);
+                        dap_enc_key_t * key = dap_enc_key_new_from_data(DAP_ENC_KEY_TYPE_AES,c_key,16);
+                        dap_enc_decode(key,data,size,out,DAP_ENC_DATA_TYPE_RAW);
+                        char* string = (char*)malloc(size);
+                        memcpy(string,out,size);
+                        string[size]='\0';
+
+                        write_data_to_file(strcat(argv[3],"_decrypted"),out,size);
+
+                        log_it(L_INFO, "Decrypted data: ",out);
+                    }
+                    else{
+                        log_it(L_CRITICAL, "Please, enter file name for decryption");
+                    }
+                }
+                else {
+                    log_it(L_CRITICAL, "Please, enter existing encryption type");
+                }
+            }
+            else {
+                log_it(L_CRITICAL, "Command decrypt need to be specified. "
+                                    "Please, enter encryption type");
+            }
+
+        } else{
         init();
         char *l_config_name = strdup(argv[1]);
         dap_config_t *l_config = dap_config_open(l_config_name);
@@ -106,62 +217,10 @@ int main(int argc, const char *argv[]) {
                 dap_chain_block_cache_t* l_s;
                 dap_chain_block_cache_t* l_c;
                 dap_chain_file_open(l_g, l_s, l_c);
-               // my_file_to_wite_gold = fopen("my_block_gold.txt", "w");// тестовый файл создам если есть добавим
-
-             /*   if (my_file_to_wite_gold==NULL){
-                    log_it(L_INFO, "Everything is lost! File not opened!");
-                    exit(1);
-
-                }
-
-
-                my_file_to_wite_silver = fopen("my_block_silver.txt", "w");
-                if (my_file_to_wite_silver==NULL){
-                    log_it(L_INFO, "Everything is lost! File not opened!");
-                    exit(1);
-
-                }
-
-                my_file_to_wite_copper = fopen("my_block_copper.txt", "w");
-                if (my_file_to_wite_copper==NULL){
-                    log_it(L_INFO, "Everything is lost! File not opened!");
-                    exit(1);
-
-                }*/
-
 
                 if (l_chain) {
                     if (argc > 2) {
-                        if (strcmp(argv[2], "encypt")==0){
-                            if (argv[3]>  0){
-                                if (argv[3] =="DAP_ENC_DATA_TYPE_MSRLN16"){
-                                   // dap_enc_code();
-                                }
-                                else {
-                                    log_it(L_CRITICAL, "Please, enter existing encryption type");
-                                }
-                            }
-                            else {
-                                log_it(L_CRITICAL, "Command encrypt need to be specified. "
-                                                   "Please, enter encryption type");
-                            }
-                        }
-                        else if (strcmp(argv[2], "decypt")==0){
-                            if (argv[3]>  0){
-                                if (argv[3] =="DAP_ENC_DATA_TYPE_MSRLN16"){
-                                                                   // dap_enc_code();
-                                                                }
-                                                                else {
-                                                                    log_it(L_CRITICAL, "Please, enter existing encryption type");
-                                                                }
-                            }
-                            else {
-                                log_it(L_CRITICAL, "Command decrypt need to be specified. "
-                                                   "Please, enter encryption type");
-                                }
-
-                        }
-                        else if (strcmp(argv[2], "block") == 0) {
+                        if (strcmp(argv[2], "block") == 0) {
                             if (argc > 3) {
                                 if (strcmp(argv[3], "new") == 0) {//елси блон новый
                                     blocks_mined = 0;
@@ -234,64 +293,6 @@ int main(int argc, const char *argv[]) {
                                                    "Variant: 'new' 'show' ");
                             }
                         }
-                        /* encrypt and decrypt via cmd params */
-						else if (strcmp(argv[2], "encrypt") == 0) {
-							if (argc > 4) {
-								/* What is supposed to be encrypted / decrypted ??? Let it be cmd param 4 */
-								log_it(L_INFO, "Encryption with '%s' method", argv[3]);
-								buf_size = strlen(argv[4]);
-								buf_encrypted = (char *)calloc(1, buf_size * 4);
-								/* Feistel */
-								if (strcmp(argv[3], "FNAm2") == 0) {
-//                                    key = dap_enc_key_new(64, DAP_ENC_KEY_TYPE_FNAM2);
-                                    key = dap_enc_key_new_generate(DAP_ENC_KEY_TYPE_FNAM2, 64);
-                                    buf_enc_size = dap_enc_code(key, argv[4], buf_size, buf_encrypted, DAP_ENC_DATA_TYPE_RAW);
-								}
-								/* AES */
-                                else if (strcmp(argv[3], "AES") ==0) {
-                                    key = dap_enc_key_new_generate(DAP_ENC_KEY_TYPE_AES, "SomeVeryLongString");
-                                    //key = enc_key_create("SomeVeryLongString", DAP_ENC_KEY_TYPE_AES);
-                                    buf_enc_size = dap_enc_code(key, argv[4], buf_size, buf_encrypted, DAP_ENC_DATA_TYPE_B64);
-								}
-                                else if (strcmp(argv[3], "MSRLN16") ==0){
-                                    key = dap_enc_key_new_generate(DAP_ENC_KEY_TYPE_RLWE_MSRLN16, 64);
-                                  //Хз что тут писать:(//  buf_enc_size = dap_enc_code(key, argv[4], buf_size, buf_encrypted, DAP_ENC_DATA_TYPE_RLWE_MSRLN16);
-                                }
-							}
-							else {
-								log_it(L_CRITICAL, "Command 'encrypt' needs to be specified. "
-													"Set encryption type. ");
-							}
-						}
-						else if (strcmp(argv[2], "decrypt") == 0) {
-							if (argc > 4) {
-								log_it(L_INFO, "Decryption with '%s' method", argv[3]);
-								if (strcmp(argv[3], "FNAm2") == 0) {
-                                    buf_dec_size = dap_enc_decode(key, argv[4], buf_size, buf_decrypted, DAP_ENC_DATA_TYPE_RAW);
-								}
-								else if (strcmp(argv[3], "AES") == 0) {
-                                    buf_dec_size = dap_enc_decode(key, argv[4], buf_size, buf_decrypted, DAP_ENC_DATA_TYPE_B64);
-								}
-                                else if (strcmp(argv[3], "MSRLN16")==0){
-                                    //Пока хз что тут писать:(//buf_dec_size = dap_enc_decode(key, argv[4], buf_size, buf_decrypted, DAP_ENC_DATA_TYPE_RLWE_MSRLN16);
-                                }
-							}
-							else {
-								log_it(L_CRITICAL, "Command 'decrypt' needs to be specified. "
-													"Set decryption type. ");
-							}
-						}
-						/* Do smth with obtained buffers*/
-						if (buf_encrypted) 
-						{
-							free(buf_encrypted);
-                            buf_encrypted = 0;//nullptr;
-						}
-						if (buf_decrypted)
-						{
-							free(buf_decrypted);
-                            buf_decrypted = 0;//nullptr;
-						}
 						/* */
                     } else {
                         log_it(L_INFO, "Information about '%s'", l_chain_name);
@@ -309,5 +310,37 @@ int main(int argc, const char *argv[]) {
         }
         free(l_config_name);
     }
+    }
     return 0;
 }
+
+
+int read_key_from_file(const char* filename, size_t key_size, char* key){
+    if(get_file_size(filename)==0)
+        return 0;
+   int s = get_file_size(filename);
+    FILE *f = fopen(filename, "r");
+    fread(key,sizeof(char),key_size,f); 
+    fclose(f);
+    return 1;
+}
+
+void write_data_to_file(const char* filename,const void* data, size_t data_size){
+    FILE *f = fopen(filename, "w");
+    fwrite(data,data_size,1,f); 
+    fclose(f);
+}
+
+void read_data_from_file(const char* filename, void* data, size_t data_size){
+    FILE *f = fopen(filename, "r");
+    fread(data,data_size,1,f); 
+    fclose(f);
+}
+
+int get_file_size(const char* filename){
+    struct stat st; 
+    stat(filename,&st);
+    return st.st_size;
+}
+
+
